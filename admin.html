@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panneau d'Administration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .logo {
+            text-align: center;
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #ff6b6b;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #ee5a6f;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+        }
+
+        .alert-success {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #3c3;
+        }
+
+        .admin-panel {
+            display: none;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            padding: 10px 20px;
+            width: auto;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+        }
+
+        .control-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .control-card h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .add-btn {
+            background: #28a745;
+            flex: 1;
+        }
+
+        .add-btn:hover {
+            background: #1e7e34;
+        }
+
+        .remove-btn {
+            background: #dc3545;
+            flex: 1;
+        }
+
+        .remove-btn:hover {
+            background: #c82333;
+        }
+
+        .users-list {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .username {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .user-balance {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Page de connexion admin -->
+    <div id="adminLogin" class="login-container">
+        <div class="logo">🔒</div>
+        <h1>Panneau d'Administration</h1>
+        <div class="warning">
+            ⚠️ Zone réservée au créateur du site uniquement
+        </div>
+        <div id="loginAlert"></div>
+        <div class="form-group">
+            <label>Mot de passe administrateur</label>
+            <input type="password" id="adminPassword" placeholder="Entrez le mot de passe">
+        </div>
+        <button onclick="adminLogin()">Connexion</button>
+    </div>
+
+    <!-- Panneau d'administration -->
+    <div id="adminPanel" class="admin-panel container">
+        <div class="header">
+            <h2>🛠️ Administration</h2>
+            <button class="logout-btn" onclick="adminLogout()">Déconnexion</button>
+        </div>
+
+        <div id="adminAlert"></div>
+
+        <div class="control-card">
+            <h3>💰 Gérer l'argent des utilisateurs</h3>
+            <div class="form-group">
+                <label>Pseudo de l'utilisateur</label>
+                <input type="text" id="targetUsername" placeholder="Entrez le pseudo">
+            </div>
+            <div class="form-group">
+                <label>Montant</label>
+                <input type="number" id="amount" step="0.01" placeholder="Montant à ajouter/enlever">
+            </div>
+            <div class="button-group">
+                <button class="add-btn" onclick="addMoney()">➕ Ajouter de l'argent</button>
+                <button class="remove-btn" onclick="removeMoney()">➖ Enlever de l'argent</button>
+            </div>
+        </div>
+
+        <div class="users-list">
+            <h3>👥 Liste des utilisateurs</h3>
+            <div id="usersList"></div>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_PASSWORD = 'admin2025'; // Changez ce mot de passe !
+        let users = {};
+
+        window.onload = function() {
+            loadUsers();
+        };
+
+        function loadUsers() {
+            const savedUsers = localStorage.getItem('virtualMoneyUsers');
+            if (savedUsers) {
+                users = JSON.parse(savedUsers);
+            }
+        }
+
+        function saveUsers() {
+            localStorage.setItem('virtualMoneyUsers', JSON.stringify(users));
+        }
+
+        function showAlert(elementId, message, type) {
+            const alertDiv = document.getElementById(elementId);
+            alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => alertDiv.innerHTML = '', 5000);
+        }
+
+        function adminLogin() {
+            const password = document.getElementById('adminPassword').value;
+
+            if (password !== ADMIN_PASSWORD) {
+                showAlert('loginAlert', 'Mot de passe incorrect', 'error');
+                return;
+            }
+
+            document.getElementById('adminLogin').classList.add('hidden');
+            document.getElementById('adminPanel').style.display = 'block';
+            updateUsersList();
+        }
+
+        function updateUsersList() {
+            loadUsers();
+            const usersList = document.getElementById('usersList');
+            
+            if (Object.keys(users).length === 0) {
+                usersList.innerHTML = '<p style="color: #999; text-align: center;">Aucun utilisateur enregistré</p>';
+                return;
+            }
+
+            usersList.innerHTML = '';
+            
+            for (const [username, userData] of Object.entries(users)) {
+                const div = document.createElement('div');
+                div.className = 'user-item';
+                div.innerHTML = `
+                    <div class="user-info">
+                        <div class="username">👤 ${username}</div>
+                        <div class="user-balance">Solde: ${userData.balance.toFixed(2)}€</div>
+                    </div>
+                `;
+                usersList.appendChild(div);
+            }
+        }
+
+        function addMoney() {
+            const username = document.getElementById('targetUsername').value.trim();
+            const amount = parseFloat(document.getElementById('amount').value);
+
+            if (!username || !amount) {
+                showAlert('adminAlert', 'Veuillez remplir tous les champs', 'error');
+                return;
+            }
+
+            if (amount <= 0) {
+                showAlert('adminAlert', 'Le montant doit être positif', 'error');
+                return;
+            }
+
+            if (!users[username]) {
+                showAlert('adminAlert', 'Utilisateur introuvable', 'error');
+                return;
+            }
+
+            users[username].balance += amount;
+            saveUsers();
+            updateUsersList();
+
+            document.getElementById('targetUsername').value = '';
+            document.getElementById('amount').value = '';
+
+            showAlert('adminAlert', `${amount.toFixed(2)}€ ajouté au compte de ${username}`, 'success');
+        }
+
+        function removeMoney() {
+            const username = document.getElementById('targetUsername').value.trim();
+            const amount = parseFloat(document.getElementById('amount').value);
+
+            if (!username || !amount) {
+                showAlert('adminAlert', 'Veuillez remplir tous les champs', 'error');
+                return;
+            }
+
+            if (amount <= 0) {
+                showAlert('adminAlert', 'Le montant doit être positif', 'error');
+                return;
+            }
+
+            if (!users[username]) {
+                showAlert('adminAlert', 'Utilisateur introuvable', 'error');
+                return;
+            }
+
+            users[username].balance -= amount;
+            
+            // Permettre un solde négatif si nécessaire
+            saveUsers();
+            updateUsersList();
+
+            document.getElementById('targetUsername').value = '';
+            document.getElementById('amount').value = '';
+
+            showAlert('adminAlert', `${amount.toFixed(2)}€ retiré du compte de ${username}`, 'success');
+        }
+
+        function adminLogout() {
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('adminLogin').classList.remove('hidden');
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('targetUsername').value = '';
+            document.getElementById('amount').value = '';
+        }
+    </script>
+</body>
+</html>
