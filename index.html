@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vertuab - Argent Virtuel</title>
+    <title>Vertuab</title>
     <style>
         * {
             margin: 0;
@@ -419,11 +419,15 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+    
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
     <script>
+        emailjs.init("dWxpD2mwwIvlR6rJ_");
+        
         const firebaseConfig = {
             apiKey: "AIzaSyBrajI13R7eC4IIGZ2-QP5N0l8BVEBm9ck",
             authDomain: "virtuab-f1e02.firebaseapp.com",
@@ -468,41 +472,73 @@
         }
 
         async function register() {
-            const username = document.getElementById('registerUsername').value.trim();
-            const password = document.getElementById('registerPassword').value;
-            const btn = document.getElementById('registerBtn');
+  const username = document.getElementById('registerUsername').value.trim();
+  const password = document.getElementById('registerPassword').value;
+  const email = prompt("Entre ton email pour vérifier ton compte :");
+  const btn = document.getElementById('registerBtn');
 
-            if (!username || !password) {
-                showAlert('registerAlert', 'Veuillez remplir tous les champs', 'error');
-                return;
-            }
+  if (!username || !password || !email) {
+    showAlert('registerAlert', 'Tous les champs sont requis.', 'error');
+    return;
+  }
 
-            btn.disabled = true;
+  btn.disabled = true;
 
-            try {
-                const userSnapshot = await database.ref('users/' + username).once('value');
-                
-                if (userSnapshot.exists()) {
-                    showAlert('registerAlert', 'Ce pseudo existe déjà', 'error');
-                    btn.disabled = false;
-                    return;
-                }
+  try {
+    // Vérifier si pseudo ou email existent déjà
+    const usersSnapshot = await database.ref('users').once('value');
+    const users = usersSnapshot.val() || {};
 
-                await database.ref('users/' + username).set({
-                    password: password,
-                    balance: 50,
-                    requests: {}
-                });
+    const emailUsed = Object.values(users).some(u => u.email === email);
+    if (emailUsed) {
+      showAlert('registerAlert', 'Cet email est déjà utilisé.', 'error');
+      btn.disabled = false;
+      return;
+    }
 
-                showAlert('registerAlert', 'Compte créé avec succès !', 'success');
-                setTimeout(() => showLogin(), 1500);
-            } catch (error) {
-                showAlert('registerAlert', 'Erreur: ' + error.message, 'error');
-            }
-            
-            btn.disabled = false;
+    const usernameSnapshot = await database.ref('users/' + username).once('value');
+    if (usernameSnapshot.exists()) {
+      showAlert('registerAlert', 'Ce pseudo existe déjà.', 'error');
+      btn.disabled = false;
+      return;
+    }
+
+    // Génère un code à 6 chiffres
+    const code = Math.floor(100000 + Math.random() * 900000);
+
+    // Envoie du code via EmailJS
+    await emailjs.send("service_ucdlkrt", "template_nwga4sq", {
+      to_email: email,
+      code: code
+    });
+
+    const userCode = prompt("Un code t’a été envoyé par email. Entre-le ici :");
+
+    if (parseInt(userCode) !== code) {
+      showAlert('registerAlert', 'Code incorrect.', 'error');
+      btn.disabled = false;
+      return;
+    }
+
+    // Création du compte si le code est bon
+    await database.ref('users/' + username).set({
+      email: email,
+      emailVerified: true,
+      password: password,
+      balance: 50,
+      requests: {}
+    });
+
+    showAlert('registerAlert', 'Compte créé et vérifié avec succès !', 'success');
+    setTimeout(() => showLogin(), 1500);
+
+  } catch (error) {
+    showAlert('registerAlert', 'Erreur : ' + error.message, 'error');
+  }
+
+  btn.disabled = false;
         }
-
+        
         async function login() {
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
