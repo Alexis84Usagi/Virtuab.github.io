@@ -421,6 +421,69 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
     <script>
+        // === Sauvegarder la session après login ===
+async function login() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const btn = document.getElementById('loginBtn');
+
+    if (!username || !password) {
+        showAlert('loginAlert', 'Veuillez remplir tous les champs', 'error');
+        return;
+    }
+
+    btn.disabled = true;
+
+    try {
+        const userSnapshot = await database.ref('users/' + username).once('value');
+        
+        if (!userSnapshot.exists()) {
+            showAlert('loginAlert', 'Pseudo introuvable', 'error');
+            btn.disabled = false;
+            return;
+        }
+
+        const userData = userSnapshot.val();
+        
+        if (userData.password !== password) {
+            showAlert('loginAlert', 'Mot de passe incorrect', 'error');
+            btn.disabled = false;
+            return;
+        }
+
+        // ✅ Sauvegarde du nom d'utilisateur dans localStorage
+        localStorage.setItem("currentUser", username);
+
+        currentUser = username;
+        showDashboard();
+    } catch (error) {
+        showAlert('loginAlert', 'Erreur: ' + error.message, 'error');
+    }
+    
+    btn.disabled = false;
+}
+
+// === Restaurer la session au chargement de la page ===
+window.onload = function() {
+    document.getElementById('loading').classList.add('hidden');
+
+    const savedUser = localStorage.getItem("currentUser");
+    if (savedUser) {
+        currentUser = savedUser;
+        showDashboard();
+    } else {
+        document.getElementById('loginPage').classList.remove('hidden');
+    }
+};
+
+// === Déconnexion : supprimer la session ===
+function logout() {
+    localStorage.removeItem("currentUser");
+    currentUser = null;
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('loginPage').classList.remove('hidden');
+}
+        
         emailjs.init("dWxpD2mwwIvlR6rJ_");
         
         const firebaseConfig = {
