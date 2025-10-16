@@ -343,7 +343,6 @@
 <body>
     <div id="loading" class="loading">Chargement de Vertuab...</div>
 
-    <!-- Page de connexion -->
     <div id="loginPage" class="login-container hidden">
         <div class="logo">💚</div>
         <div class="brand-name">Vertuab</div>
@@ -361,7 +360,6 @@
         <button class="link-btn" onclick="showRegister()">Créer un compte</button>
     </div>
 
-    <!-- Page d'inscription -->
     <div id="registerPage" class="register-container hidden">
         <div class="logo">💚</div>
         <div class="brand-name">Vertuab</div>
@@ -379,7 +377,6 @@
         <button class="link-btn" onclick="showLogin()">Déjà un compte ? Se connecter</button>
     </div>
 
-    <!-- Tableau de bord -->
     <div id="dashboard" class="dashboard container">
         <div class="header">
             <div class="header-content">
@@ -420,8 +417,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-    
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
@@ -472,71 +467,94 @@
         }
 
         async function register() {
-  const username = document.getElementById('registerUsername').value.trim();
-  const password = document.getElementById('registerPassword').value;
-  const email = prompt("Entre ton email pour vérifier ton compte :");
-  const btn = document.getElementById('registerBtn');
+            const username = document.getElementById('registerUsername').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const btn = document.getElementById('registerBtn');
 
-  if (!username || !password || !email) {
-    showAlert('registerAlert', 'Tous les champs sont requis.', 'error');
-    return;
-  }
+            if (!username || !password) {
+                showAlert('registerAlert', 'Veuillez remplir tous les champs', 'error');
+                return;
+            }
 
-  btn.disabled = true;
+            const email = prompt("Entre ton email pour vérifier ton compte :");
+            
+            if (!email || !email.includes('@')) {
+                showAlert('registerAlert', 'Email invalide', 'error');
+                return;
+            }
 
-  try {
-    // Vérifier si pseudo ou email existent déjà
-    const usersSnapshot = await database.ref('users').once('value');
-    const users = usersSnapshot.val() || {};
+            btn.disabled = true;
+            showAlert('registerAlert', 'Vérification en cours...', 'success');
 
-    const emailUsed = Object.values(users).some(u => u.email === email);
-    if (emailUsed) {
-      showAlert('registerAlert', 'Cet email est déjà utilisé.', 'error');
-      btn.disabled = false;
-      return;
-    }
+            try {
+                const usernameSnapshot = await database.ref('users/' + username).once('value');
+                if (usernameSnapshot.exists()) {
+                    showAlert('registerAlert', 'Ce pseudo existe déjà', 'error');
+                    btn.disabled = false;
+                    return;
+                }
 
-    const usernameSnapshot = await database.ref('users/' + username).once('value');
-    if (usernameSnapshot.exists()) {
-      showAlert('registerAlert', 'Ce pseudo existe déjà.', 'error');
-      btn.disabled = false;
-      return;
-    }
+                const usersSnapshot = await database.ref('users').once('value');
+                const users = usersSnapshot.val() || {};
+                const emailUsed = Object.values(users).some(u => u.email === email);
+                
+                if (emailUsed) {
+                    showAlert('registerAlert', 'Cet email est déjà utilisé', 'error');
+                    btn.disabled = false;
+                    return;
+                }
 
-    // Génère un code à 6 chiffres
-    const code = Math.floor(100000 + Math.random() * 900000);
+                const code = Math.floor(100000 + Math.random() * 900000);
 
-    // Envoie du code via EmailJS
-    await emailjs.send("service_m5vfnzu", "template_nwga4sq", {
-      to_email: email,
-      code: code
-    });
+                showAlert('registerAlert', 'Envoi du code par email...', 'success');
+                
+                emailjs.send("service_m5vfnzu", "template_nwga4sq", {
+                    to_email: email,
+                    code: code,
+                    username: username
+                }).then(function(response) {
+                    showAlert('registerAlert', 'Code envoyé ! Vérifiez votre email (spam inclus)', 'success');
+                    
+                    setTimeout(() => {
+                        const userCode = prompt("Un code a été envoyé à " + email + ". Entre-le ici :");
 
-    const userCode = prompt("Un code t’a été envoyé par email. Entre-le ici :");
+                        if (!userCode) {
+                            showAlert('registerAlert', 'Vérification annulée', 'error');
+                            btn.disabled = false;
+                            return;
+                        }
 
-    if (parseInt(userCode) !== code) {
-      showAlert('registerAlert', 'Code incorrect.', 'error');
-      btn.disabled = false;
-      return;
-    }
+                        if (parseInt(userCode) !== code) {
+                            showAlert('registerAlert', 'Code incorrect', 'error');
+                            btn.disabled = false;
+                            return;
+                        }
 
-    // Création du compte si le code est bon
-    await database.ref('users/' + username).set({
-      email: email,
-      emailVerified: true,
-      password: password,
-      balance: 50,
-      requests: {}
-    });
+                        database.ref('users/' + username).set({
+                            email: email,
+                            emailVerified: true,
+                            password: password,
+                            balance: 50,
+                            requests: {}
+                        }).then(() => {
+                            showAlert('registerAlert', 'Compte créé et vérifié avec succès !', 'success');
+                            setTimeout(() => showLogin(), 1500);
+                        }).catch((error) => {
+                            showAlert('registerAlert', 'Erreur lors de la création : ' + error.message, 'error');
+                        }).finally(() => {
+                            btn.disabled = false;
+                        });
+                    }, 3000);
+                    
+                }).catch(function(error) {
+                    showAlert('registerAlert', 'Erreur lors de l\'envoi : ' + error.text, 'error');
+                    btn.disabled = false;
+                });
 
-    showAlert('registerAlert', 'Compte créé et vérifié avec succès !', 'success');
-    setTimeout(() => showLogin(), 1500);
-
-  } catch (error) {
-    showAlert('registerAlert', 'Erreur : ' + error.message, 'error');
-  }
-
-  btn.disabled = false;
+            } catch (error) {
+                showAlert('registerAlert', 'Erreur : ' + error.message, 'error');
+                btn.disabled = false;
+            }
         }
         
         async function login() {
