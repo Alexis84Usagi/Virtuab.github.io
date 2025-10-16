@@ -366,14 +366,32 @@
         <h1>Créer un compte</h1>
         <div id="registerAlert"></div>
         <div class="form-group">
-            <label>Pseudo</label>
-            <input type="text" id="registerUsername" placeholder="Choisir un pseudo">
-        </div>
-        <div class="form-group">
-            <label>Mot de passe</label>
-            <input type="password" id="registerPassword" placeholder="Choisir un mot de passe">
-        </div>
-        <button id="registerBtn" onclick="register()">S'inscrire</button>
+    <label>Pseudo</label>
+    <input type="text" id="registerUsername" placeholder="Choisir un pseudo">
+</div>
+
+<div class="form-group">
+    <label>Mot de passe</label>
+    <input type="password" id="registerPassword" placeholder="Choisir un mot de passe">
+</div>
+
+<div class="form-group">
+    <label>Numéro de téléphone</label>
+    <input type="text" id="registerPhone" placeholder="+33612345678">
+</div>
+
+<div id="recaptcha-container"></div>
+
+<button id="registerBtn" onclick="sendVerificationCode()">Envoyer le code</button>
+
+<div id="verifySection" class="hidden">
+    <div class="form-group">
+        <label>Code reçu par SMS</label>
+        <input type="text" id="verificationCode" placeholder="Code reçu">
+    </div>
+    <button id="verifyBtn" onclick="verifyCode()">Vérifier et créer le compte</button>
+</div>
+        
         <button class="link-btn" onclick="showLogin()">Déjà un compte ? Se connecter</button>
     </div>
 
@@ -860,6 +878,95 @@ function logout() {
             document.getElementById('requestAmount').value = '';
             showLogin();
         }
+
+
+    const auth = firebase.auth();
+
+// Étape 1 : envoyer le code par SMS
+function sendVerificationCode() {
+    const phoneNumber = document.getElementById('registerPhone').value.trim();
+    const username = document.getElementById('registerUsername').value.trim();
+    const password = document.getElementById('registerPassword').value.trim();
+
+    if (!username || !password || !phoneNumber) {
+        showAlert('registerAlert', 'Veuillez remplir tous les champs', 'error');
+        return;
+    }
+
+    // Vérifie format du numéro
+    if (!/^\+?\d{8,15}$/.test(phoneNumber)) {
+        showAlert('registerAlert', 'Numéro de téléphone invalide', 'error');
+        return;
+    }
+
+    // Crée le reCAPTCHA invisible
+    const appVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+        'size': 'invisible'
+    });
+
+    // Vérifie que le pseudo n’existe pas déjà
+    database.ref('users/' + username).once('value').then(snapshot => {
+        if (snapshot.exists()) {
+            showAlert('registerAlert', 'Ce pseudo existe déjà', 'error');
+        } else {
+            // Envoi du SMS via Firebase
+            auth.signInWithPhoneNumber(phoneNumber, appVerifier)
+                .then(confirmationResult => {
+                    window.confirmationResult = confirmationResult;
+                    showAlert('registerAlert', 'Code envoyé par SMS à ' + phoneNumber, 'success');
+                    document.getElementById('verifySection').classList.remove('hidden');
+
+                    // Sauvegarde temporaire des infos
+                    localStorage.setItem('pendingUsername', username);
+                    localStorage.setItem('pendingPassword', password);
+                    localStorage.setItem('pendingPhone', phoneNumber);
+                })
+                .catch(error => {
+                    showAlert('registerAlert', 'Erreur : ' + error.message, 'error');
+                });
+        }
+    });
+}
+
+// Étape 2 : vérifier le code et créer le compte
+function verifyCode() {
+    const code = document.getElementById('verificationCode').value.trim();
+    const username = localStorage.getItem('pendingUsername');
+    const password = localStorage.getItem('pendingPassword');
+    const phone = localStorage.getItem('pendingPhone');
+
+    if (!code) {
+        showAlert('registerAlert', 'Veuillez entrer le code reçu par SMS', 'error');
+        return;
+    }
+
+    window.confirmationResult.confirm(code)
+        .then(result => {
+            // Numéro vérifié ✅
+            database.ref('users/' + username).set({
+                phone: phone,
+                phoneVerified: true,
+                password: password,
+                balance: 50,
+                requests: {}
+            }).then(() => {
+                showAlert('registerAlert', 'Compte créé avec succès !', 'success');
+                // Nettoyer les données temporaires
+                localStorage.removeItem('pendingUsername');
+                localStorage.removeItem('pendingPassword');
+                localStorage.removeItem('pendingPhone');
+
+                // Rediriger vers la page de connexion
+                setTimeout(() => showLogin(), 1500);
+            });
+        })
+        .catch(error => {
+            showAlert('registerAlert', 'Code invalide : ' + error.message, 'error');
+        });
+}
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
     </script>
 </body>
 </html>
